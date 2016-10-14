@@ -1,176 +1,176 @@
 (function () {
-    var game = window.game = {};
 
-    game.Grid = function () {
+    var jogo = window.jogo = {};
 
-        var size = null;
-        var columns;
+    jogo.Grade = function () {
 
-        var exists = function (x, y) {
-            var column = columns[x];
-            if (column == null)
+        var tamanho = null;
+        var colunas;
+
+        var existe = function (x, y) {
+            var coluna = colunas[x];
+            if (coluna == null)
                 return false;
-            var value = column[y];
+            var value = coluna[y];
             if (value == null)
                 return false;
             return true;
         };
-        var checkValue = function (x, y, num) {
-            return exists(x, y) && columns[x][y] == num;
+
+        var checaValor = function (x, y, num) {
+            return existe(x, y) && colunas[x][y] == num;
         };
 
-        var isDestroyable = function (x, y) {
-            var num = columns[x][y];
-            return checkValue(x, y - 1, num) || checkValue(x, y + 1, num)
-                    || checkValue(x + 1, y, num) || checkValue(x - 1, y, num);
+        var podeDestruir = function (x, y) {
+            var num = colunas[x][y];
+            return checaValor(x, y - 1, num) || checaValor(x, y + 1, num)
+                    || checaValor(x + 1, y, num) || checaValor(x - 1, y, num);
         };
 
-        var arrayClean = function (array) {
-            var clean = [];
+        var limpaArray = function (array) {
+            var arrayLimpo = [];
             for (var i in array)
                 if (array[i] != null)
-                    clean.push(array[i]);
-            return clean;
+                    arrayLimpo.push(array[i]);
+            return arrayLimpo;
         };
 
         return {
 
-            generate: function (width, height, nbColors) {
-                size = {x: width, y: height};
-                columns = [];
-                for (var x = 0; x < size.x; ++x) {
-                    columns[x] = [];
-                    var column = columns[x];
-                    for (var y = 0; y < size.y; ++y)
+            geraGrade: function (width, height, nbColors) {
+                tamanho = {x: width, y: height};
+                colunas = [];
+
+                for (var x = 0; x < tamanho.x; ++x) {
+                    colunas[x] = [];
+                    var column = colunas[x];
+                    for (var y = 0; y < tamanho.y; ++y)
                         column[y] = Math.floor(nbColors * Math.random());
                 }
-                return columns;
+
+                return colunas;
             },
 
-            noMoreDestroyable: function () {
-                for (var x in columns)
-                    for (var y in columns[x])
-                        if (isDestroyable(x, y))
+            naoPodeDestruir: function () {
+                for (var x in colunas)
+                    for (var y in colunas[x])
+                        if (podeDestruir(x, y))
                             return false;
                 return true;
             },
 
-            isDestroyable: function (x, y) {
-                return exists(x, y) && isDestroyable(x, y);
+            podeDestruir: function (x, y) {
+                return existe(x, y) && podeDestruir(x, y);
             },
 
-            computeGravity: function () {
+            computaGravidade: function () {
 
-                var moveMap = {horizontal: [], vertical: []};
+                var moveMapa = {horizontal: [], vertical: []};
 
-                for (var x = 0; x < columns.length; ++x) {
-                    moveMap.vertical[x] = [];
-                    moveMap.horizontal[x] = 0;
+                for (var x = 0; x < colunas.length; ++x) {
+                    moveMapa.vertical[x] = [];
+                    moveMapa.horizontal[x] = 0;
                 }
 
-                for (var x = 0; x < columns.length; ++x) {
-                    var column = columns[x];
-                    var empty = true;
-                    for (var i = 0; i < column.length && empty; ++i)
+                for (var x = 0; x < colunas.length; ++x) {
+                    var column = colunas[x];
+                    var vazio = true;
+                    for (var i = 0; i < column.length && vazio; ++i)
                         if (column[i] != null)
-                            empty = false;
-                    if (empty) {
+                            vazio = false;
+                    if (vazio) {
                         var c = x + 1;
-                        while (c < columns.length) {
+                        while (c < colunas.length) {
                             if (c > x)
-                                --moveMap.horizontal[c];
+                                --moveMapa.horizontal[c];
                             ++c;
                         }
                     } else {
-                        var wsCount = 0;
-                        for (var y = 0; y < size.y; ++y) {
-                            if (!exists(x, y))
-                                ++wsCount;
-                            else if (wsCount)
-                                moveMap.vertical[x].push({y: y, dy: wsCount});
+                        var espacoBranco = 0;
+                        for (var y = 0; y < tamanho.y; ++y) {
+                            if (!existe(x, y))
+                                ++espacoBranco;
+                            else if (espacoBranco)
+                                moveMapa.vertical[x].push({y: y, dy: espacoBranco});
                         }
                     }
                 }
 
-                return moveMap;
+                return moveMapa;
             },
 
             computeDestroy: function (x, y) {
-                if (!exists(x, y) || !isDestroyable(x, y))
+                if (!existe(x, y) || !podeDestruir(x, y))
                     return [];
 
-                var computed = [];
-                var recCompute = function (x, y, numFilter) {
-                    if (!exists(x, y) || columns[x][y] != numFilter)
+                var computado = [];
+                var garvarComputado = function (x, y, numFilter) {
+                    if (!existe(x, y) || colunas[x][y] != numFilter)
                         return;
 
-                    for (var i = 0; i < computed.length; ++i)
-                        if (computed[i].x == x && computed[i].y == y)
+                    for (var i = 0; i < computado.length; ++i)
+                        if (computado[i].x == x && computado[i].y == y)
                             return;
 
-                    computed.push({x: x, y: y});
-                    recCompute(x, y - 1, numFilter);
-                    recCompute(x, y + 1, numFilter);
-                    recCompute(x - 1, y, numFilter);
-                    recCompute(x + 1, y, numFilter);
+                    computado.push({x: x, y: y});
+                    garvarComputado(x, y - 1, numFilter);
+                    garvarComputado(x, y + 1, numFilter);
+                    garvarComputado(x - 1, y, numFilter);
+                    garvarComputado(x + 1, y, numFilter);
                 };
 
-                recCompute(x, y, columns[x][y]);
-                return computed;
+                garvarComputado(x, y, colunas[x][y]);
+                return computado;
             },
 
-            applyDestroy: function (destroy) {
+            aplicarDestrucao: function (destroy) {
                 for (var d in destroy)
-                    columns[destroy[d].x][destroy[d].y] = null;
+                    colunas[destroy[d].x][destroy[d].y] = null;
             },
 
-            applyMoveVertical: function () {
-                for (var x in columns)
-                    columns[x] = arrayClean(columns[x]);
+            aplicarMovimentoVertical: function () {
+                for (var x in colunas)
+                    colunas[x] = limpaArray(colunas[x]);
             },
 
-            applyMoveHorizontal: function () {
-                for (var x in columns)
-                    if (columns[x].length == 0)
-                        columns[x] = null;
-                columns = arrayClean(columns);
+            aplicarMovimentoHorizontal: function () {
+                for (var x in colunas)
+                    if (colunas[x].length == 0)
+                        colunas[x] = null;
+                colunas = limpaArray(colunas);
             },
 
-            getColumns: function () {
-                return columns;
+            obtemColunas: function () {
+                return colunas;
             },
 
-            getColumn: function (i) {
-                return columns[i] || [];
+            obtemColuna: function (i) {
+                return colunas[i] || [];
             },
 
-            getValue: function (x, y) {
-                return columns[x] != null ? columns[x][y] : null;
+            obtemValor: function (x, y) {
+                return colunas[x] != null ? colunas[x][y] : null;
             }
         }
     }();
 
-    game.Canvas = function () {
+    jogo.Canvas = function () {
         var canvas;
-        var ctx;
+        var contexto;
 
-        var gridSize = {w: 20, h: 10};
-        var canvasSize = {w: 0, h: 0};
-        var brickSize = {w: 0, h: 0};
+        var tamanhoGrade = {l: 20, a: 10};
+        var tamanhaCanvas = {l: 0, a: 0};
+        var tamanhoBloco = {l: 0, a: 0};
 
-        var colors = ["#2196F3", "#FFEB3B", "#4CAF50", "#F44336"];
-        var nbColor = colors.length;
+        var cores = ["#2196F3", "#FFEB3B", "#4CAF50", "#F44336"];
+        var numeroCores = cores.length;
 
         var destroyHoverOn;
         var g_hoverDestroyed = null;
         var g_oldBrickHover;
 
-        var brickPosition2canvasPosition = function (x, y) {
-            return {x: x * brickSize.w, y: (gridSize.h - y - 1) * brickSize.h};
-        };
-
-        var setCursor = function (isPointer) {
-            $(canvas).css('cursor', isPointer ? 'pointer' : 'default');
+        var transfromaPosicaoBloco = function (x, y) {
+            return {x: x * tamanhoBloco.l, y: (tamanhoGrade.a - y - 1) * tamanhoBloco.a};
         };
 
         var setDestroyHover = function (isOn) {
@@ -179,83 +179,84 @@
             destroyHoverOn = !isOn ? false : true;
         };
 
-        var animateGravity = function (move, callback) {
+        var animaGravidade = function (move, callback) {
 
-            var beginTime;
+            var inicio;
 
-            var animateTimeY = 200;
-            var animateTimeX = 150;
-            var lastCycleBrickPositions = [];
+            var animacaoTempoY = 200;
+            var animacaoTempoX = 150;
+            var posicaoUtimosBlocos = [];
 
-            var vertMoveApplied = false;
+            var movimentoVerticalAplicado = false;
             var i = 0;
 
-            var cycle = function () {
-                var currentTime = new Date();
-                if ((currentTime - beginTime) > (animateTimeY + animateTimeX)) {
-                    game.Grid.applyMoveHorizontal();
+            var ciclo = function () {
+                var agora = new Date();
+                if ((agora - inicio) > (animacaoTempoY + animacaoTempoX)) {
+                    jogo.Grade.aplicarMovimentoHorizontal();
                     callback(move);
                 } else {
-                    setTimeout(cycle, 30);
+                    setTimeout(ciclo, 30);
 
-                    for (var b in lastCycleBrickPositions) {
-                        var bp = lastCycleBrickPositions[b];
-                        ctx.clearRect(bp.x, bp.y, brickSize.w, brickSize.h);
+                    for (var b in posicaoUtimosBlocos) {
+                        var bp = posicaoUtimosBlocos[b];
+                        contexto.clearRect(bp.x, bp.y, tamanhoBloco.l, tamanhoBloco.a);
                     }
-                    lastCycleBrickPositions = [];
+                    posicaoUtimosBlocos = [];
 
-                    var currentProgressX, currentProgressY;
+                    var progressoAtualX, progressoAtualY;
 
-                    if ((currentTime - beginTime) < animateTimeY) {
-                        currentProgressX = 0;
-                        currentProgressY = i == 0 ? 0 : (currentTime - beginTime) / animateTimeY;
+                    if ((agora - inicio) < animacaoTempoY) {
+                        progressoAtualX = 0;
+                        progressoAtualY = i == 0 ? 0 : (agora - inicio) / animacaoTempoY;
                         for (var x in move.vertical) {
                             var col = move.vertical[x];
                             for (var c in col) {
-                                var color = game.Grid.getValue(x, col[c].y);
+                                var color = jogo.Grade.obtemValor(x, col[c].y);
                                 if (color != null) {
-                                    ctx.fillStyle = colors[color];
-                                    var y = col[c].y - col[c].dy * currentProgressY;
-                                    var bp = brickPosition2canvasPosition(x, y);
-                                    lastCycleBrickPositions.push(bp);
-                                    drawBrick(bp.x, bp.y);
+                                    contexto.fillStyle = cores[color];
+                                    var y = col[c].y - col[c].dy * progressoAtualY;
+                                    var bp = transfromaPosicaoBloco(x, y);
+                                    posicaoUtimosBlocos.push(bp);
+                                    desenhaBloco(bp.x, bp.y);
                                 }
                             }
                         }
                     } else {
-                        if (!vertMoveApplied) {
-                            vertMoveApplied = true;
+                        if (!movimentoVerticalAplicado) {
+                            movimentoVerticalAplicado = true;
                             i = 0;
-                            lastCycleBrickPositions = [];
-                            game.Grid.applyMoveVertical();
+                            posicaoUtimosBlocos = [];
+                            jogo.Grade.aplicarMovimentoVertical();
 
                             for (var x in move.vertical) {
                                 var col = move.vertical[x];
                                 for (var c in col) {
                                     var y = col[c].y - col[c].dy;
-                                    var color = game.Grid.getValue(x, y);
+                                    var color = jogo.Grade.obtemValor(x, y);
                                     if (color != null) {
-                                        ctx.fillStyle = colors[color];
-                                        var bp = brickPosition2canvasPosition(x, y);
-                                        drawBrick(bp.x, bp.y);
+                                        contexto.fillStyle = cores[color];
+                                        var bp = transfromaPosicaoBloco(x, y);
+                                        desenhaBloco(bp.x, bp.y);
                                     }
                                 }
                             }
                         }
 
-                        currentProgressX = i == 0 ? 0 : (currentTime - beginTime - animateTimeY) / animateTimeX;
-                        currentProgressY = 1;
+                        progressoAtualX = i == 0 ? 0 : (agora - inicio - animacaoTempoY) / animacaoTempoX;
+                        progressoAtualY = 1;
+
                         for (var c = 0; c < move.horizontal.length; ++c) {
                             var col = move.horizontal[c];
                             if (col) {
-                                var column = game.Grid.getColumn(c);
-                                var x = c + col * currentProgressX;
-                                for (var y = 0; y < column.length; ++y) {
-                                    var value = column[y];
-                                    ctx.fillStyle = colors[value];
-                                    var bp = brickPosition2canvasPosition(x, y);
-                                    lastCycleBrickPositions.push(bp);
-                                    drawBrick(bp.x, bp.y);
+                                var coluna = jogo.Grade.obtemColuna(c);
+                                var x = c + col * progressoAtualX;
+                                for (var y = 0; y < coluna.length; ++y) {
+                                    var value = coluna[y];
+                                    contexto.fillStyle = cores[value];
+                                    var bp = transfromaPosicaoBloco(x, y);
+                                    posicaoUtimosBlocos.push(bp);
+                                    desenhaBloco(bp.x, bp.y);
                                 }
                             }
                         }
@@ -263,8 +264,9 @@
                 }
                 ++i;
             }
-            beginTime = new Date().getTime();
-            cycle();
+
+            inicio = new Date().getTime();
+            ciclo();
         };
 
         var animateDestroyed = function (destroyed, callback) {
@@ -275,16 +277,16 @@
             var cycle = function () {
                 var currentTime = new Date().getTime();
                 if ((currentTime - beginTime) > animateTime) {
-                    ctx.globalAlpha = 1;
+                    contexto.globalAlpha = 1;
                     callback(destroyed);
                 } else {
                     setTimeout(cycle, 30);
-                    ctx.fillStyle = $('body').css('background-color');
+                    contexto.fillStyle = $('body').css('background-color');
                     var currentProgress = (currentTime - beginTime) / animateTime;
-                    ctx.globalAlpha = currentProgress - lastProgress;
+                    contexto.globalAlpha = currentProgress - lastProgress;
                     for (var i in destroyed) {
-                        var bp = brickPosition2canvasPosition(destroyed[i].x, destroyed[i].y);
-                        ctx.fillRect(bp.x, bp.y, brickSize.w, brickSize.h);
+                        var bp = transfromaPosicaoBloco(destroyed[i].x, destroyed[i].y);
+                        contexto.fillRect(bp.x, bp.y, tamanhoBloco.l, tamanhoBloco.a);
                     }
                     lastProgress = currentProgress;
                 }
@@ -300,27 +302,27 @@
             g_onCanvasClick_isRunning = true;
             var x = e.clientX - $(canvas).position().left;
             var y = e.clientY - $(canvas).position().top + $().scrollTop();
-            var brickX = Math.floor(x / brickSize.w);
-            var brickY = Math.floor(gridSize.h - y / brickSize.h);
-            if (game.Grid.isDestroyable(brickX, brickY)) {
+            var brickX = Math.floor(x / tamanhoBloco.l);
+            var brickY = Math.floor(tamanhoGrade.a - y / tamanhoBloco.a);
+            if (jogo.Grade.podeDestruir(brickX, brickY)) {
 
-                var columns = game.Grid.getColumns();
+                var columns = jogo.Grade.obtemColunas();
 
                 var destroyed = (g_hoverDestroyed != null && g_oldBrickHover != null && g_oldBrickHover.x == brickX && g_oldBrickHover.y == brickY) ?
-                        g_hoverDestroyed : game.Grid.computeDestroy(brickX, brickY);
+                        g_hoverDestroyed : jogo.Grade.computeDestroy(brickX, brickY);
 
                 setDestroyHover(false);
 
                 animateDestroyed(destroyed, function (destroyed) {
                     drawDestroyed(destroyed);
-                    game.Grid.applyDestroy(destroyed);
+                    jogo.Grade.aplicarDestrucao(destroyed);
 
-                    animateGravity(game.Grid.computeGravity(), function () {
+                    animaGravidade(jogo.Grade.computaGravidade(), function () {
                         setDestroyHover(true);
-                        drawMap();
+                        desenhaBlocos();
                         g_onCanvasClick_isRunning = false;
-                        if (game.Grid.noMoreDestroyable())
-                            end();
+                        if (jogo.Grade.naoPodeDestruir())
+                            fimJogo();
                         else
                             $(canvas).one('click', onCanvasClick);
                     });
@@ -342,11 +344,11 @@
                 return;
             var x = e.clientX - $(canvas).position().left;
             var y = e.clientY - $(canvas).position().top + $().scrollTop();
-            var brick = {x: Math.floor(x / brickSize.w), y: Math.floor(gridSize.h - y / brickSize.h)};
+            var brick = {x: Math.floor(x / tamanhoBloco.l), y: Math.floor(tamanhoGrade.a - y / tamanhoBloco.a)};
 
             if (!g_oldBrickHover || !(g_oldBrickHover.x == brick.x && g_oldBrickHover.y == brick.y)) {
                 g_oldBrickHover = brick;
-                g_hoverDestroyed = game.Grid.computeDestroy(brick.x, brick.y);
+                g_hoverDestroyed = jogo.Grade.computeDestroy(brick.x, brick.y);
             }
         };
 
@@ -358,88 +360,87 @@
 
         var drawDestroyed = function (destroyed) {
             for (b in destroyed) {
-                var bp = brickPosition2canvasPosition(destroyed[b].x, destroyed[b].y);
-                ctx.clearRect(bp.x, bp.y, brickSize.w, brickSize.h);
+                var bp = transfromaPosicaoBloco(destroyed[b].x, destroyed[b].y);
+                contexto.clearRect(bp.x, bp.y, tamanhoBloco.l, tamanhoBloco.a);
             }
         };
 
-        var drawMap = function () {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            var columns = game.Grid.getColumns();
+        var desenhaBlocos = function () {
+            contexto.clearRect(0, 0, canvas.width, canvas.height);
+            var columns = jogo.Grade.obtemColunas();
             for (var x = 0; x < columns.length; ++x) {
                 var column = columns[x];
                 for (var y = 0; y < column.length; ++y) {
                     if (column[y] != null) {
-                        ctx.fillStyle = colors[column[y]];
-                        var bp = brickPosition2canvasPosition(x, y);
-                        drawBrick(bp.x, bp.y);
+                        contexto.fillStyle = cores[column[y]];
+                        var bp = transfromaPosicaoBloco(x, y);
+                        desenhaBloco(bp.x, bp.y);
                     }
                 }
             }
         };
 
-        var drawBrick = function (x, y) {
-            ctx.strokeStyle = "#FFFFFF";
-            ctx.lineWidth = 4;
-            ctx.strokeRect(x, y, brickSize.w, brickSize.h);
-            ctx.fillRect(x, y, brickSize.w, brickSize.h);
+        var desenhaBloco = function (x, y) {
+            contexto.strokeStyle = "#FFFFFF";
+            contexto.lineWidth = 4;
+            contexto.strokeRect(x, y, tamanhoBloco.l, tamanhoBloco.a);
+            contexto.fillRect(x, y, tamanhoBloco.l, tamanhoBloco.a);
         };
 
-        var updateBrickSize = function () {
-            brickSize = {w: (canvasSize.w / gridSize.w), h: (canvasSize.h / gridSize.h)};
+        var atualizaTamanhoBloco = function () {
+            tamanhoBloco = {l: (tamanhaCanvas.l / tamanhoGrade.l), a: (tamanhaCanvas.a / tamanhoGrade.a)};
         };
 
-        var updateWindowSize = function () {
-            canvasSize = {w: $(canvas).width(), h: $(canvas).height()};
-            updateBrickSize();
+        var atualizaTamanhoCanvas = function () {
+            tamanhaCanvas = {l: $(canvas).width(), a: $(canvas).height()};
+            atualizaTamanhoBloco();
         };
 
-        var newgame = function () {
+        var novoJogo = function () {
             $(canvas).unbind("click");
             $(canvas).one("click", onCanvasClick);
             setDestroyHover(true);
-            game.Grid.generate(gridSize.w, gridSize.h, nbColor);
-            drawMap();
+            jogo.Grade.geraGrade(tamanhoGrade.l, tamanhoGrade.a, numeroCores);
+            desenhaBlocos();
         };
 
-        var end = function () {
+        var fimJogo = function () {
             setDestroyHover(false);
-            ctx.fillStyle = "#000000";
-            ctx.font = "bold 40px serif";
-            ctx.textBaseline = "middle";
-            var text = (game.Grid.getColumns().length == 0 ? "Você venceu!" : "você perdeu!");
-            ctx.fillText(text, (canvasSize.w - ctx.measureText(text).width) / 2, canvasSize.h / 2);
+            contexto.fillStyle = "#000000";
+            contexto.font = "bold 40px serif";
+            contexto.textBaseline = "middle";
+            var text = (jogo.Grade.obtemColunas().length == 0 ? "Você venceu!" : "você perdeu!");
+            contexto.fillText(text, (tamanhaCanvas.l - contexto.measureText(text).width) / 2, tamanhaCanvas.a / 2);
             setCursor(true);
-            $(canvas).one("click", newgame);
+            $(canvas).one("click", novoJogo);
         };
 
         return {
-            init: function () {
+            iniciar: function () {
                 canvas = $("#jogoCanvas")[0];
-                ctx = canvas.getContext("2d");
+                contexto = canvas.getContext("2d");
 
-                updateWindowSize();
+                atualizaTamanhoCanvas();
                 $(window).resize(function () {
-                    updateWindowSize();
-                    drawMap();
+                    atualizaTamanhoCanvas();
+                    desenhaBlocos();
                 });
-
 
                 bindHover();
 
-                newgame();
+                novoJogo();
             },
 
             getBrickSize: function () {
-                return brickSize;
+                return tamanhoBloco;
             },
 
             getGridSize: function () {
-                return gridSize;
+                return tamanhoGrade;
             }
         };
     }();
 
-    $(document).ready(game.Canvas.init);
+    $(document).ready(jogo.Canvas.iniciar);
 
 }());
